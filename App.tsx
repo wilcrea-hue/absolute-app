@@ -9,12 +9,15 @@ import { Cart } from './components/Cart';
 import { Tracking } from './components/Tracking';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ServiceMap } from './components/ServiceMap';
+import { EmailNotification } from './components/EmailNotification';
 import { PRODUCTS } from './constants';
 import { Package, MapPin, Navigation, ArrowRight, Map as MapIcon, User as UserIcon, ClipboardList } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [sentEmail, setSentEmail] = useState<{ to: string, subject: string, body: string, stage: string } | null>(null);
   
   // --- Persisted States ---
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -82,6 +85,58 @@ const App: React.FC = () => {
   const handleLogout = () => {
     setUser(null);
     setCart([]);
+  };
+
+  // --- Email Simulation Logic with AI ---
+  const triggerEmailNotification = async (order: Order, stageKey: WorkflowStageKey) => {
+    const stageLabels: Record<WorkflowStageKey, string> = {
+      'bodega_check': 'Verificación en Bodega',
+      'bodega_to_coord': 'Salida a Tránsito',
+      'coord_to_client': 'Entrega en el Evento',
+      'client_to_coord': 'Recogida de Equipos',
+      'coord_to_bodega': 'Retorno a Bodega Central'
+    };
+
+    const stageLabel = stageLabels[stageKey];
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const prompt = `Redacta un correo electrónico profesional y breve para un cliente de ABSOLUTE COMPANY. 
+      Información clave:
+      - Pedido: ${order.id}
+      - Cliente: ${order.userEmail}
+      - Etapa Alcanzada: ${stageLabel}
+      - Ciudad del Evento: ${order.destinationLocation}
+      
+      El tono debe ser corporativo, eficiente y amable. Incluye una breve recomendación logística según la etapa. 
+      No uses placeholders como [Nombre], intenta que sea un cuerpo de texto fluido.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt
+      });
+
+      const bodyText = response.text || "Su pedido ha avanzado a la siguiente etapa.";
+      
+      setSentEmail({
+        to: order.userEmail,
+        subject: `Actualización ABSOLUTE: Pedido ${order.id} - ${stageLabel}`,
+        body: bodyText,
+        stage: stageLabel
+      });
+
+      // Auto-hide after 10 seconds if not clicked
+      setTimeout(() => setSentEmail(null), 10000);
+    } catch (err) {
+      console.error("Error generating AI email:", err);
+      // Fallback notification
+      setSentEmail({
+        to: order.userEmail,
+        subject: `Actualización de Pedido ${order.id}`,
+        body: `Su pedido ha cambiado al estado: ${stageLabel}. Por favor verifique el seguimiento en la plataforma.`,
+        stage: stageLabel
+      });
+    }
   };
 
   // --- Inventory Handlers ---
@@ -170,19 +225,29 @@ const App: React.FC = () => {
   };
 
   const handleUpdateStage = (orderId: string, stageKey: WorkflowStageKey, data: StageData) => {
-    setOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        const updatedWorkflow = { ...order.workflow, [stageKey]: data };
-        let newStatus: OrderStatus = order.status;
-        
-        if (updatedWorkflow.coord_to_bodega.status === 'completed') newStatus = 'Finalizado';
-        else if (updatedWorkflow.coord_to_client.status === 'completed') newStatus = 'Entregado';
-        else newStatus = 'En Proceso';
+    setOrders(prev => {
+      const updatedOrders = prev.map(order => {
+        if (order.id === orderId) {
+          const updatedWorkflow = { ...order.workflow, [stageKey]: data };
+          let newStatus: OrderStatus = order.status;
+          
+          if (updatedWorkflow.coord_to_bodega.status === 'completed') newStatus = 'Finalizado';
+          else if (updatedWorkflow.coord_to_client.status === 'completed') newStatus = 'Entregado';
+          else newStatus = 'En Proceso';
 
-        return { ...order, workflow: updatedWorkflow, status: newStatus };
-      }
-      return order;
-    }));
+          const updatedOrder = { ...order, workflow: updatedWorkflow, status: newStatus };
+          
+          // Only trigger email if the stage was just completed
+          if (data.status === 'completed' && order.workflow[stageKey].status !== 'completed') {
+            triggerEmailNotification(updatedOrder, stageKey);
+          }
+          
+          return updatedOrder;
+        }
+        return order;
+      });
+      return updatedOrders;
+    });
   };
 
   const handleApproveOrder = (id: string) => {
@@ -198,6 +263,7 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
+      <EmailNotification email={sentEmail} onClose={() => setSentEmail(null)} />
       <Layout user={user} cartCount={cart.reduce((a, b) => a + b.quantity, 0)} onLogout={handleLogout}>
         <Routes>
           <Route path="/" element={<Catalog products={products} onAddToCart={addToCart} />} />
@@ -225,7 +291,7 @@ const App: React.FC = () => {
   );
 };
 
-// Subcomponent for the list, now role-aware
+// Subcomponent for the list
 const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, currentUser }) => {
   const isAdminOrLogistics = currentUser.role === 'admin' || currentUser.role === 'logistics';
 
