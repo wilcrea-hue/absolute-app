@@ -1,7 +1,8 @@
 
 import React, { useRef, useState } from 'react';
 import { Signature } from '../types';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Zap } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 interface SignaturePadProps {
   label: string;
@@ -67,10 +68,32 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ label, onSave, onCan
 
     setIsDetecting(true);
     navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
             const { latitude, longitude } = position.coords;
-            setLocation(`Coordenadas: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-            setIsDetecting(false);
+            const coordString = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+            
+            try {
+              // Initialize AI to perform reverse geocoding
+              const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+              const prompt = `Dada la latitud ${latitude} y longitud ${longitude} en Colombia, ¿cuál es la dirección o nombre del lugar más probable? 
+              Responde de forma MUY concisa solo con el nombre del lugar, barrio o dirección aproximada (ej: 'Barrio El Chicó, Bogotá' o 'Zona Industrial, Medellín'). No incluyas preámbulos.`;
+
+              const response = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: prompt,
+                config: {
+                  tools: [{ googleMaps: {} }]
+                }
+              });
+
+              const placeName = response.text?.trim() || coordString;
+              setLocation(placeName);
+            } catch (err) {
+              console.error("Error reverse geocoding with AI:", err);
+              setLocation(`Coordenadas: ${coordString}`);
+            } finally {
+              setIsDetecting(false);
+            }
         },
         (error) => {
             console.error(error);
@@ -124,19 +147,30 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({ label, onSave, onCan
         <div>
           <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Ubicación de Firma <span className="text-red-500">*</span></label>
           <div className="flex gap-2">
-              <input 
-                type="text" 
-                value={location} 
-                onChange={e => setLocation(e.target.value)}
-                className="flex-1 border rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm"
-                placeholder="Ej: Bodega Central / Evento Corferias"
-              />
+              <div className="relative flex-1">
+                <input 
+                  type="text" 
+                  value={location} 
+                  onChange={e => setLocation(e.target.value)}
+                  className="w-full border rounded-lg pl-3 pr-10 py-2.5 focus:ring-2 focus:ring-brand-500 outline-none text-sm shadow-sm"
+                  placeholder="Ej: Bodega Central / Evento Corferias"
+                />
+                {isDetecting && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Zap size={14} className="text-brand-500 animate-pulse" />
+                  </div>
+                )}
+              </div>
               <button 
                 type="button"
                 onClick={detectLocation}
                 disabled={isDetecting}
-                title="Detectar ubicación actual"
-                className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center min-w-[45px]"
+                title="Detectar ubicación inteligente"
+                className={`p-2.5 rounded-lg transition-all flex items-center justify-center min-w-[45px] ${
+                  isDetecting 
+                    ? 'bg-brand-100 text-brand-400 cursor-wait' 
+                    : 'bg-brand-900 text-white hover:bg-brand-800 shadow-md active:scale-95'
+                }`}
               >
                 {isDetecting ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
               </button>
