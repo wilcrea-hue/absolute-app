@@ -58,6 +58,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [tempStageData, setTempStageData] = useState<StageData | null>(null);
   const [isSignaturePadOpen, setIsSignaturePadOpen] = useState<'signature' | 'receivedBy' | null>(null);
 
+  const startEdit = (product?: Product) => {
+    if (product) {
+      setIsEditingProduct(product.id);
+      setEditForm(product);
+    } else {
+      setIsEditingProduct('new');
+      setEditForm({
+        name: '',
+        category: 'Arquitectura Efímera',
+        description: '',
+        image: 'https://example.com/new_product.png',
+        stock: 10
+      });
+    }
+  };
+
+  // Auto-open "New Product" form if it's the first time viewing inventory as admin
+  useEffect(() => {
+    if (activeTab === 'inventory' && !isEditingProduct && currentUser.role === 'admin') {
+      startEdit();
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     if (editingStage) {
         const order = orders.find(o => o.id === editingStage.orderId);
@@ -80,22 +103,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
       return next;
     });
-  };
-
-  const startEdit = (product?: Product) => {
-    if (product) {
-      setIsEditingProduct(product.id);
-      setEditForm(product);
-    } else {
-      setIsEditingProduct('new');
-      setEditForm({
-        name: '',
-        category: 'Arquitectura Efímera',
-        description: '',
-        image: 'https://picsum.photos/400/300',
-        stock: 0
-      });
-    }
   };
 
   const saveProduct = () => {
