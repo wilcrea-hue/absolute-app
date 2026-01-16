@@ -64,7 +64,7 @@ export interface Order {
 
 export interface User {
   email: string;
-  role: 'admin' | 'user' | 'logistics';
+  role: 'admin' | 'user' | 'logistics' | 'coordinator';
   name: string;
   phone?: string; // Nuevo campo para registro de celular
 }

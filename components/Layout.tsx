@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutGrid, 
@@ -25,6 +26,8 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, user, cartCount, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const location = useLocation();
+
+  const isStaff = user.role === 'admin' || user.role === 'logistics' || user.role === 'coordinator';
 
   const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
     const isActive = location.pathname === to;
@@ -81,16 +84,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, cartCount, onLog
         <div className="p-6 space-y-2 flex-1 overflow-y-auto no-scrollbar">
           <div className="mb-4">
              <p className="px-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-4">Principal</p>
-             {user.role !== 'logistics' && <NavItem to="/" icon={LayoutGrid} label="Catálogo Global" />}
-             {user.role !== 'logistics' && <NavItem to="/cart" icon={ShoppingCart} label="Configurar Pedido" />}
-             {user.role !== 'logistics' && <NavItem to="/orders" icon={ClipboardList} label="Mis Reservas" />}
+             {user.role !== 'logistics' && user.role !== 'coordinator' && <NavItem to="/" icon={LayoutGrid} label="Catálogo Global" />}
+             {user.role !== 'logistics' && user.role !== 'coordinator' && <NavItem to="/cart" icon={ShoppingCart} label="Configurar Pedido" />}
+             <NavItem to="/orders" icon={ClipboardList} label={isStaff ? "Listado Maestro" : "Mis Reservas"} />
           </div>
           
           <div className="pt-4">
-             <p className="px-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-4">Administración</p>
-             {(user.role === 'admin' || user.role === 'logistics') && (
+             <p className="px-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-4">Operaciones</p>
+             {isStaff && (
                 <>
-                  <NavItem to="/admin" icon={ShieldCheck} label={user.role === 'admin' ? "Panel de Control" : "Flujo Logístico"} />
+                  <NavItem to="/admin" icon={ShieldCheck} label={user.role === 'admin' ? "Panel de Control" : "Flujo Operativo"} />
                   <NavItem to="/logistics-map" icon={Map} label="Logística Nacional" />
                 </>
              )}

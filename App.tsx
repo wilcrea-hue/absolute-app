@@ -40,6 +40,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [
       { email: 'admin@absolute.com', name: 'Administrador Principal', role: 'admin', phone: '3101234567' },
       { email: 'logistics@absolute.com', name: 'Encargado Logística', role: 'logistics', phone: '3119876543' },
+      { email: 'coord@absolute.com', name: 'Coordinador Nacional', role: 'coordinator', phone: '3200001122' },
       { email: 'user@absolute.com', name: 'Usuario Demo', role: 'user', phone: '3000000000' }
     ];
   });
@@ -154,7 +155,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleChangeUserRole = (email: string, newRole: 'admin' | 'user' | 'logistics') => {
+  const handleChangeUserRole = (email: string, newRole: User['role']) => {
     setUsers(prev => prev.map(u => u.email === email ? { ...u, role: newRole } : u));
     if (user && user.email === email) {
       setUser({ ...user, role: newRole });
@@ -256,9 +257,9 @@ const App: React.FC = () => {
 
   if (!user) return <Login onLogin={handleLogin} onRegister={handleRegister} />;
 
-  // Logic to filter orders for the view based on role
+  // Admin, Logistics and Coordinator see all orders. Demo User only sees their own.
   const visibleOrders = orders.filter(o => 
-    user.role === 'admin' || user.role === 'logistics' || o.userEmail === user.email
+    user.role === 'admin' || user.role === 'logistics' || user.role === 'coordinator' || o.userEmail === user.email
   );
 
   return (
@@ -291,9 +292,8 @@ const App: React.FC = () => {
   );
 };
 
-// Subcomponent for the list
 const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, currentUser }) => {
-  const isAdminOrLogistics = currentUser.role === 'admin' || currentUser.role === 'logistics';
+  const isStaff = currentUser.role === 'admin' || currentUser.role === 'logistics' || currentUser.role === 'coordinator';
 
   if (orders.length === 0) {
     return (
@@ -301,7 +301,7 @@ const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, 
         <Package className="h-12 w-12 text-gray-300 mb-4" />
         <h3 className="text-lg font-bold text-gray-900">No hay pedidos registrados</h3>
         <p className="text-gray-500">
-          {isAdminOrLogistics 
+          {isStaff 
             ? "Aún no se han generado órdenes en el sistema global." 
             : "Todavía no has realizado ninguna reserva. ¡Ve al catálogo!"}
         </p>
@@ -314,17 +314,17 @@ const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            {isAdminOrLogistics ? 'Gestión Global de Pedidos' : 'Mis Pedidos'}
+            {isStaff ? 'Gestión Global de Pedidos' : 'Mis Pedidos'}
           </h2>
           <p className="text-gray-500 text-sm">
-            {isAdminOrLogistics 
+            {isStaff 
               ? 'Vista completa de todas las operaciones logísticas.' 
               : 'Historial personal de tus solicitudes y eventos.'}
           </p>
         </div>
         <div className="bg-brand-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg flex items-center">
           <ClipboardList size={16} className="mr-2" />
-          {isAdminOrLogistics ? 'Total Sistema' : 'Mis Reservas'}: {orders.length}
+          {isStaff ? 'Total Sistema' : 'Mis Reservas'}: {orders.length}
         </div>
       </div>
       
@@ -337,7 +337,7 @@ const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, 
                   {order.id}
                 </span>
                 <h3 className="font-bold text-gray-900">{order.destinationLocation}</h3>
-                {isAdminOrLogistics && (
+                {isStaff && (
                   <p className="text-[10px] text-brand-600 font-bold flex items-center mt-1">
                     <UserIcon size={10} className="mr-1" /> {order.userEmail}
                   </p>

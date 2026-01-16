@@ -1,12 +1,12 @@
 
 import React, { useState } from 'react';
 import { User } from '../types';
-import { Search, User as UserIcon, Shield, Truck, UserCircle, Mail, Phone, ChevronRight } from 'lucide-react';
+import { Search, User as UserIcon, Shield, Truck, UserCircle, Mail, Phone, MapPin } from 'lucide-react';
 
 interface UserManagementProps {
   users: User[];
   currentUser: User;
-  onChangeUserRole: (email: string, newRole: 'admin' | 'user' | 'logistics') => void;
+  onChangeUserRole: (email: string, newRole: User['role']) => void;
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onChangeUserRole }) => {
@@ -22,6 +22,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
     switch (role) {
       case 'admin': return <Shield size={14} className="mr-1" />;
       case 'logistics': return <Truck size={14} className="mr-1" />;
+      case 'coordinator': return <MapPin size={14} className="mr-1" />;
       default: return <UserCircle size={14} className="mr-1" />;
     }
   };
@@ -30,6 +31,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
     switch (role) {
       case 'admin': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'logistics': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'coordinator': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       default: return 'bg-blue-100 text-blue-800 border-blue-200';
     }
   };
@@ -38,83 +40,82 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Directorio de Usuarios</h3>
-          <p className="text-sm text-gray-500">Administre los permisos y roles de acceso al sistema.</p>
+          <h3 className="text-sm font-black text-brand-900 uppercase tracking-widest">Nómina del Sistema</h3>
+          <p className="text-[11px] text-gray-500 font-bold uppercase">Gestión de privilegios y acceso jerárquico.</p>
         </div>
         
         <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input 
             type="text" 
-            placeholder="Buscar por email, nombre o celular..." 
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-900 outline-none text-sm transition-all"
+            placeholder="Buscar por email, nombre..." 
+            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-brand-900 outline-none text-xs font-bold transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-[2rem] border border-slate-50 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-slate-50/50 border-b border-slate-100">
               <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Usuario</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Contacto</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Rol Actual</th>
-                <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Cambiar Permisos</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Identidad</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Rol Actual</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Escalafón Operativo</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-slate-50">
               {filteredUsers.map(user => (
-                <tr key={user.email} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-900 border border-brand-100">
+                <tr key={user.email} className="hover:bg-slate-50/30 transition-colors group">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-900 border border-brand-100">
                         <UserIcon size={20} />
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-gray-900 flex items-center">
+                        <div className="text-sm font-black text-gray-900 flex items-center">
                           {user.name}
                           {user.email === currentUser.email && (
-                            <span className="ml-2 text-[9px] bg-gray-900 text-white px-1.5 py-0.5 rounded-full uppercase">Tú</span>
+                            <span className="ml-2 text-[9px] bg-brand-900 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter">Tú</span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 flex items-center">
-                          <Mail size={12} className="mr-1 opacity-50" /> {user.email}
+                        <div className="text-[10px] text-gray-400 font-bold flex items-center mt-0.5">
+                          <Mail size={12} className="mr-1.5 opacity-50" /> {user.email}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-xs text-gray-700 font-bold flex items-center">
-                      <Phone size={12} className="mr-1.5 text-brand-500" />
-                      {user.phone || 'No registrado'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${getRoleStyles(user.role)}`}>
+                  <td className="px-6 py-5 text-center">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${getRoleStyles(user.role)}`}>
                       {getRoleIcon(user.role)}
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="inline-flex bg-gray-100 p-1 rounded-xl gap-1">
+                  <td className="px-6 py-5 text-right">
+                    <div className="inline-flex bg-slate-100 p-1.5 rounded-2xl gap-1">
                       <button 
                         onClick={() => onChangeUserRole(user.email, 'user')}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'user' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'user' ? 'bg-white text-blue-700 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                         Usuario
                       </button>
                       <button 
                         onClick={() => onChangeUserRole(user.email, 'logistics')}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'logistics' ? 'bg-white text-orange-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'logistics' ? 'bg-white text-orange-700 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                         Logística
                       </button>
                       <button 
+                        onClick={() => onChangeUserRole(user.email, 'coordinator')}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'coordinator' ? 'bg-white text-emerald-700 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                        Coord
+                      </button>
+                      <button 
                         onClick={() => onChangeUserRole(user.email, 'admin')}
-                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'admin' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all ${user.role === 'admin' ? 'bg-white text-purple-700 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                         Admin
                       </button>
@@ -122,13 +123,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUs
                   </td>
                 </tr>
               ))}
-              {filteredUsers.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500 italic text-sm">
-                    No se encontraron usuarios que coincidan con "{searchTerm}"
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
