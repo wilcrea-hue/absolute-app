@@ -58,7 +58,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
           <div className="p-10 md:p-14">
             <div className="text-center mb-12">
               <div className="flex justify-center mb-8">
-                <div className="w-full max-w-[320px] transform hover:scale-105 transition-transform duration-500">
+                <div className="w-full max-w-[320px] transform hover:scale-105 transition-transform duration-500 overflow-hidden rounded-[2.5rem]">
                   <img src={LOGO_URL} alt="ABSOLUTE COMPANY" className="w-full h-auto object-contain drop-shadow-2xl" />
                 </div>
               </div>

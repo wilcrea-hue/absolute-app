@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutGrid, 
@@ -57,7 +56,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, cartCount, onLog
       {/* Mobile Header with brand color */}
       <div className="md:hidden bg-[#000033] border-b border-white/5 p-4 flex justify-between items-center sticky top-0 z-50 shadow-xl">
         <div className="flex items-center h-9">
-          <img src={LOGO_URL} alt="ABSOLUTE" className="h-full w-auto object-contain" />
+          <img src={LOGO_URL} alt="ABSOLUTE" className="h-full w-auto object-contain rounded-lg" />
         </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-white p-2 active:scale-90 transition-transform">
           {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
@@ -70,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, cartCount, onLog
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-10 border-b border-slate-50 flex flex-col items-center bg-gradient-to-b from-slate-50/50 to-transparent">
-          <Link to="/" className="w-full max-w-[210px] mb-6 transform hover:scale-105 transition-transform duration-300">
+          <Link to="/" className="w-full max-w-[210px] mb-6 transform hover:scale-105 transition-transform duration-300 rounded-2xl overflow-hidden">
             <img src={LOGO_URL} alt="ABSOLUTE Logo" className="w-full h-auto object-contain drop-shadow-sm" />
           </Link>
           <div className="w-full">

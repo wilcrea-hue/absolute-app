@@ -11,7 +11,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ServiceMap } from './components/ServiceMap';
 import { EmailNotification } from './components/EmailNotification';
 import { PRODUCTS } from './constants';
-import { Package, MapPin, Navigation, ArrowRight, Map as MapIcon, User as UserIcon, ClipboardList } from 'lucide-react';
+import { Package, MapPin, Navigation, ArrowRight, Map as MapIcon, User as UserIcon, ClipboardList, Trash2, XCircle } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 const App: React.FC = () => {
@@ -130,7 +130,6 @@ const App: React.FC = () => {
       setTimeout(() => setSentEmail(null), 10000);
     } catch (err) {
       console.error("Error generating AI email:", err);
-      // Fallback notification
       setSentEmail({
         to: order.userEmail,
         subject: `Actualización de Pedido ${order.id}`,
@@ -238,7 +237,6 @@ const App: React.FC = () => {
 
           const updatedOrder = { ...order, workflow: updatedWorkflow, status: newStatus };
           
-          // Only trigger email if the stage was just completed
           if (data.status === 'completed' && order.workflow[stageKey].status !== 'completed') {
             triggerEmailNotification(updatedOrder, stageKey);
           }
@@ -255,9 +253,20 @@ const App: React.FC = () => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'En Proceso' } : o));
   };
 
+  const handleCancelOrder = (id: string) => {
+    if (window.confirm("¿Está seguro de que desea cancelar este pedido?")) {
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'Cancelado' } : o));
+    }
+  };
+
+  const handleDeleteOrder = (id: string) => {
+    if (window.confirm("¿Está seguro de que desea eliminar permanentemente este pedido del registro? Esta acción no se puede deshacer.")) {
+      setOrders(prev => prev.filter(o => o.id !== id));
+    }
+  };
+
   if (!user) return <Login onLogin={handleLogin} onRegister={handleRegister} />;
 
-  // Admin, Logistics and Coordinator see all orders. Demo User only sees their own.
   const visibleOrders = orders.filter(o => 
     user.role === 'admin' || user.role === 'logistics' || user.role === 'coordinator' || o.userEmail === user.email
   );
@@ -269,7 +278,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Catalog products={products} onAddToCart={addToCart} />} />
           <Route path="/cart" element={<Cart items={cart} onRemove={removeFromCart} onUpdateQuantity={updateQuantity} onCheckout={createOrder} />} />
-          <Route path="/orders" element={<OrdersList orders={visibleOrders} currentUser={user} />} />
+          <Route path="/orders" element={<OrdersList orders={visibleOrders} currentUser={user} onCancelOrder={handleCancelOrder} onDeleteOrder={handleDeleteOrder} />} />
           <Route path="/orders/:id" element={<Tracking orders={orders} onUpdateStage={handleUpdateStage} />} />
           <Route path="/admin" element={
             <AdminDashboard 
@@ -279,6 +288,8 @@ const App: React.FC = () => {
               onDeleteProduct={handleDeleteProduct}
               onUpdateOrderDates={() => {}} 
               onApproveOrder={handleApproveOrder} 
+              onCancelOrder={handleCancelOrder}
+              onDeleteOrder={handleDeleteOrder}
               onToggleUserRole={() => {}} 
               onChangeUserRole={handleChangeUserRole}
               onUpdateStage={handleUpdateStage}
@@ -292,8 +303,14 @@ const App: React.FC = () => {
   );
 };
 
-const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, currentUser }) => {
+const OrdersList: React.FC<{ 
+  orders: Order[], 
+  currentUser: User, 
+  onCancelOrder: (id: string) => void,
+  onDeleteOrder: (id: string) => void
+}> = ({ orders, currentUser, onCancelOrder, onDeleteOrder }) => {
   const isStaff = currentUser.role === 'admin' || currentUser.role === 'logistics' || currentUser.role === 'coordinator';
+  const isAdmin = currentUser.role === 'admin';
 
   if (orders.length === 0) {
     return (
@@ -330,10 +347,10 @@ const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, 
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {orders.map(order => (
-          <div key={order.id} className="bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-xl transition-all group border-l-4 border-l-brand-900">
+          <div key={order.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden hover:shadow-xl transition-all group border-l-4 ${order.status === 'Cancelado' ? 'border-l-red-500 grayscale' : 'border-l-brand-900'}`}>
             <div className="p-5 border-b bg-gray-50/50 flex justify-between items-start">
               <div>
-                <span className="font-mono text-xs bg-brand-900 text-white px-2 py-1 rounded font-bold mb-2 inline-block">
+                <span className={`font-mono text-xs px-2 py-1 rounded font-bold mb-2 inline-block ${order.status === 'Cancelado' ? 'bg-red-500 text-white' : 'bg-brand-900 text-white'}`}>
                   {order.id}
                 </span>
                 <h3 className="font-bold text-gray-900">{order.destinationLocation}</h3>
@@ -344,13 +361,36 @@ const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, 
                 )}
                 <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest mt-1">Registrado: {new Date(order.createdAt).toLocaleDateString()}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
-                ${order.status === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' : ''}
-                ${order.status === 'En Proceso' ? 'bg-blue-100 text-blue-800' : ''}
-                ${order.status === 'Finalizado' ? 'bg-green-100 text-green-800' : ''}
-              `}>
-                {order.status}
-              </span>
+              <div className="flex flex-col items-end space-y-2">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
+                  ${order.status === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' : ''}
+                  ${order.status === 'En Proceso' ? 'bg-blue-100 text-blue-800' : ''}
+                  ${order.status === 'Finalizado' ? 'bg-green-100 text-green-800' : ''}
+                  ${order.status === 'Cancelado' ? 'bg-red-100 text-red-800' : ''}
+                `}>
+                  {order.status}
+                </span>
+                <div className="flex space-x-1">
+                    {order.status !== 'Cancelado' && order.status !== 'Finalizado' && (
+                        <button 
+                            onClick={() => onCancelOrder(order.id)}
+                            className="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                            title="Cancelar Pedido"
+                        >
+                            <XCircle size={14} />
+                        </button>
+                    )}
+                    {isAdmin && (
+                        <button 
+                            onClick={() => onDeleteOrder(order.id)}
+                            className="p-1.5 bg-gray-100 text-gray-500 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
+                            title="Eliminar Registro"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    )}
+                </div>
+              </div>
             </div>
 
             <div className="p-5">
@@ -376,13 +416,20 @@ const OrdersList: React.FC<{ orders: Order[], currentUser: User }> = ({ orders, 
                  </div>
               </div>
 
-              <a 
-                href={`#/orders/${order.id}`}
-                className="w-full bg-brand-900 text-white font-black text-[10px] uppercase tracking-widest py-3 rounded-xl text-center hover:bg-brand-800 transition flex items-center justify-center space-x-2"
-              >
-                <Navigation size={14} />
-                <span>Gestionar Seguimiento</span>
-              </a>
+              {order.status !== 'Cancelado' ? (
+                <a 
+                    href={`#/orders/${order.id}`}
+                    className="w-full bg-brand-900 text-white font-black text-[10px] uppercase tracking-widest py-3 rounded-xl text-center hover:bg-brand-800 transition flex items-center justify-center space-x-2"
+                >
+                    <Navigation size={14} />
+                    <span>Gestionar Seguimiento</span>
+                </a>
+              ) : (
+                <div className="w-full bg-gray-100 text-gray-400 font-black text-[10px] uppercase tracking-widest py-3 rounded-xl text-center flex items-center justify-center space-x-2 cursor-not-allowed">
+                    <XCircle size={14} />
+                    <span>Pedido Cancelado</span>
+                </div>
+              )}
             </div>
           </div>
         ))}

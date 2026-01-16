@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Order, WorkflowStageKey, StageData, Signature } from '../types';
-import { Check, PenTool, Camera, Upload, X, MessageSquare, Map as MapIcon, Navigation, Ruler, Clock, CreditCard, Info, ArrowRight } from 'lucide-react';
+import { Check, PenTool, Camera, Upload, X, MessageSquare, Map as MapIcon, Navigation, Ruler, Clock, CreditCard, Info, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { SignaturePad } from './SignaturePad';
 
@@ -26,12 +26,14 @@ export const Tracking: React.FC<TrackingProps> = ({ orders, onUpdateStage }) => 
   const [tempStageData, setTempStageData] = useState<StageData | null>(null);
   const [activeSigningField, setActiveSigningField] = useState<'signature' | 'receivedBy' | null>(null);
   const [showMap, setShowMap] = useState(true);
+  const [signatureSuccess, setSignatureSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (order && order.workflow) {
       const data = order.workflow[activeStageKey];
       setTempStageData(data ? JSON.parse(JSON.stringify(data)) : null);
       setActiveSigningField(null);
+      setSignatureSuccess(null);
     }
   }, [order, activeStageKey]);
 
@@ -68,8 +70,19 @@ export const Tracking: React.FC<TrackingProps> = ({ orders, onUpdateStage }) => 
 
   const saveSignature = (field: 'signature' | 'receivedBy', sig: Signature) => {
     if (!tempStageData) return;
-    setTempStageData({ ...tempStageData, [field]: sig });
-    setActiveSigningField(null);
+    
+    // Set descriptive success message
+    setSignatureSuccess(`Firma de ${sig.name} guardada correctamente en ${sig.location}`);
+    
+    // Update data immediately but hold the modal open for visibility
+    const updatedData = { ...tempStageData, [field]: sig };
+    setTempStageData(updatedData);
+
+    // Wait 2 seconds to show the message before closing the modal
+    setTimeout(() => {
+      setActiveSigningField(null);
+      setSignatureSuccess(null);
+    }, 2000);
   };
 
   const handleCompleteStage = () => {
@@ -130,7 +143,7 @@ export const Tracking: React.FC<TrackingProps> = ({ orders, onUpdateStage }) => 
         </div>
       </div>
 
-      {/* Logistics Route Map - Appears automatically for the order */}
+      {/* Logistics Route Map */}
       {showMap && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 animate-in fade-in duration-500">
            <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border overflow-hidden h-64 md:h-80 relative">
@@ -333,14 +346,25 @@ export const Tracking: React.FC<TrackingProps> = ({ orders, onUpdateStage }) => 
       {/* Signature Modal */}
       {activeSigningField && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-              <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+              <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden transition-all">
                   <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
                       <h3 className="font-bold text-gray-900">Captura de Firma Digital</h3>
-                      <button onClick={() => setActiveSigningField(null)} className="p-1 hover:bg-gray-200 rounded-full">
+                      <button onClick={() => { setActiveSigningField(null); setSignatureSuccess(null); }} className="p-1 hover:bg-gray-200 rounded-full">
                         <X size={20} />
                       </button>
                   </div>
-                  <div className="p-6">
+                  <div className="p-6 relative">
+                      {signatureSuccess && (
+                          <div className="absolute inset-0 z-10 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95">
+                              <CheckCircle2 size={48} className="text-emerald-500 mb-4" />
+                              <h4 className="text-lg font-bold text-gray-900 mb-2">¡Firma Registrada!</h4>
+                              <p className="text-sm text-gray-600 font-medium">{signatureSuccess}</p>
+                              <div className="mt-6 flex items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                  <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></div>
+                                  Actualizando sistema...
+                              </div>
+                          </div>
+                      )}
                       <SignaturePad 
                           label={activeSigningField === 'signature' ? 'Autorizado / Entregado por' : 'Recibido por'} 
                           onSave={(sig) => saveSignature(activeSigningField, sig)}
