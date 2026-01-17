@@ -8,7 +8,7 @@ export const PRODUCTS: Product[] = [
   // Arquitectura Efímera
   {
     id: 'ae-1',
-    name: 'Stand 3x3',
+    name: 'Stand básico',
     category: 'Arquitectura Efímera',
     description: 'Estructura modular estándar 3x3m para ferias.',
     image: 'https://absolutecompany.co/app/imagenes/Arquitectura Efímera/Stand 3x3.png',
