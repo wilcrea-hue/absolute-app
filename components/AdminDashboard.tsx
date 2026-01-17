@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Product, Order, User, WorkflowStageKey, StageData, Signature, OrderStatus } from '../types';
-import { Package, Users, ClipboardList, Plus, Edit2, Trash2, Check, Calendar, ChevronDown, ChevronUp, Clock, User as UserIcon, Camera, X, PenTool, Eye, CheckCircle, Info, Lock, XCircle } from 'lucide-react';
+import { Product, Order, User, WorkflowStageKey, StageData, Signature, OrderStatus, Category } from '../types';
+import { Package, Users, ClipboardList, Plus, Edit2, Trash2, Check, Calendar, ChevronDown, ChevronUp, Clock, User as UserIcon, Camera, X, PenTool, Eye, CheckCircle, Info, Lock, XCircle, Image as ImageIcon, Type, BarChart3 } from 'lucide-react';
 import { SignaturePad } from './SignaturePad';
 import { UserManagement } from './UserManagement';
 
@@ -31,6 +31,8 @@ const WORKFLOW_STEPS: { key: WorkflowStageKey; label: string; stepNumber: number
   { key: 'client_to_coord', label: '4. Recogida', stepNumber: 4 },
   { key: 'coord_to_bodega', label: '5. Retorno Bodega', stepNumber: 5 },
 ];
+
+const CATEGORIES: Category[] = ['Mobiliario', 'Electrónica', 'Arquitectura Efímera', 'Decoración', 'Servicios'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
@@ -99,7 +101,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setEditForm(product);
     } else {
       setIsEditingProduct('new');
-      setEditForm({ name: '', category: 'Arquitectura Efímera', description: '', image: '', stock: 10 });
+      setEditForm({ name: '', category: 'Mobiliario', description: '', image: '', stock: 10 });
     }
   };
 
@@ -123,8 +125,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const saveProduct = () => {
-    if (isEditingProduct === 'new') onAddProduct({ ...editForm, id: Math.random().toString(36).substr(2, 9) } as Product);
-    else onUpdateProduct(editForm as Product);
+    if (!editForm.name || !editForm.category || !editForm.image) {
+      alert("Por favor complete los campos obligatorios del artículo.");
+      return;
+    }
+
+    if (isEditingProduct === 'new') {
+      onAddProduct({ ...editForm, id: Math.random().toString(36).substr(2, 9) } as Product);
+    } else {
+      onUpdateProduct(editForm as Product);
+    }
     setIsEditingProduct(null);
   };
 
@@ -178,13 +188,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div>
              <div className="flex justify-between items-center mb-8">
                 <h3 className="text-sm font-black text-brand-900 uppercase tracking-widest flex items-center"><Package size={18} className="mr-2 text-brand-400" /> Stock Global</h3>
-                <button onClick={() => startEdit()} className="bg-brand-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-900 flex items-center shadow-lg"><Plus size={16} className="mr-2" /> Nuevo Ítem</button>
+                <button onClick={() => startEdit()} className="bg-brand-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-900 flex items-center shadow-lg transition-all active:scale-95"><Plus size={16} className="mr-2" /> Nuevo Artículo</button>
              </div>
              <div className="overflow-x-auto no-scrollbar">
                 <table className="w-full text-left">
                     <thead className="bg-slate-50/50">
                         <tr className="border-b border-slate-100">
                             <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Artículo</th>
+                            <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</th>
                             <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Stock</th>
                             <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
                         </tr>
@@ -194,11 +205,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <tr key={p.id} className="group hover:bg-slate-50/50 transition-colors">
                                 <td className="p-5">
                                     <div className="flex items-center space-x-4">
-                                        <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
+                                        <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
                                             <img src={p.image} className="w-full h-full object-cover" alt="" />
                                         </div>
-                                        <span className="font-bold text-sm text-slate-900">{p.name}</span>
+                                        <div className="min-w-0">
+                                          <p className="font-bold text-sm text-slate-900 truncate">{p.name}</p>
+                                          <p className="text-[10px] text-slate-400 truncate">{p.description}</p>
+                                        </div>
                                     </div>
+                                </td>
+                                <td className="p-5">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-brand-500 bg-brand-50 px-2 py-1 rounded-md border border-brand-100">{p.category}</span>
                                 </td>
                                 <td className="p-5 text-center font-black text-brand-900">{p.stock}</td>
                                 <td className="p-5 text-right space-x-3">
@@ -210,6 +227,106 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </tbody>
                 </table>
              </div>
+          </div>
+        )}
+
+        {/* Edit/Add Product Modal */}
+        {isEditingProduct && (
+          <div className="fixed inset-0 bg-brand-900/90 backdrop-blur-md flex items-center justify-center z-[100] p-4 animate-in fade-in">
+            <div className="bg-white rounded-[3rem] shadow-2xl max-w-xl w-full overflow-hidden flex flex-col border border-white/20">
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div>
+                  <h3 className="text-sm font-black text-brand-900 uppercase tracking-widest">
+                    {isEditingProduct === 'new' ? 'Nuevo Artículo / Servicio' : 'Modificar Artículo'}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Gestión Centralizada de Inventario</p>
+                </div>
+                <button onClick={() => setIsEditingProduct(null)} className="p-2 hover:bg-slate-200 rounded-xl transition-all"><X size={24} className="text-slate-400" /></button>
+              </div>
+
+              <div className="p-8 space-y-6 flex-1 overflow-y-auto no-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center">
+                      <Type size={12} className="mr-1.5" /> Nombre del Ítem
+                    </label>
+                    <input 
+                      type="text" 
+                      value={editForm.name || ''} 
+                      onChange={e => setEditForm({...editForm, name: e.target.value})}
+                      placeholder="Ej: Pantalla LED 65..."
+                      className="w-full pl-5 pr-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-900/5 focus:bg-white focus:border-brand-900 outline-none transition-all text-sm font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center">
+                      <Package size={12} className="mr-1.5" /> Categoría
+                    </label>
+                    <select 
+                      value={editForm.category}
+                      onChange={e => setEditForm({...editForm, category: e.target.value as Category})}
+                      className="w-full pl-5 pr-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-900/5 focus:bg-white focus:border-brand-900 outline-none transition-all text-sm font-bold appearance-none cursor-pointer"
+                    >
+                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center">
+                    <Info size={12} className="mr-1.5" /> Descripción Detallada
+                  </label>
+                  <textarea 
+                    value={editForm.description || ''} 
+                    onChange={e => setEditForm({...editForm, description: e.target.value})}
+                    placeholder="Especifique características técnicas, dimensiones, etc."
+                    className="w-full pl-5 pr-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-900/5 focus:bg-white focus:border-brand-900 outline-none transition-all text-sm font-bold min-h-[100px] resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center">
+                      <ImageIcon size={12} className="mr-1.5" /> URL de Imagen
+                    </label>
+                    <input 
+                      type="text" 
+                      value={editForm.image || ''} 
+                      onChange={e => setEditForm({...editForm, image: e.target.value})}
+                      placeholder="https://..."
+                      className="w-full pl-5 pr-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-900/5 focus:bg-white focus:border-brand-900 outline-none transition-all text-sm font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center">
+                      <BarChart3 size={12} className="mr-1.5" /> Cantidad Stock
+                    </label>
+                    <input 
+                      type="number" 
+                      value={editForm.stock || 0} 
+                      onChange={e => setEditForm({...editForm, stock: parseInt(e.target.value) || 0})}
+                      className="w-full pl-5 pr-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-900/5 focus:bg-white focus:border-brand-900 outline-none transition-all text-sm font-bold"
+                    />
+                  </div>
+                </div>
+
+                {editForm.image && (
+                  <div className="pt-4 flex flex-col items-center">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Previsualización de Imagen</p>
+                    <div className="w-32 h-32 rounded-3xl overflow-hidden border-2 border-slate-100 shadow-lg">
+                      <img src={editForm.image} className="w-full h-full object-cover" alt="Previsualización" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/150')} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 border-t border-slate-100 bg-slate-50 flex justify-end space-x-4">
+                <button onClick={() => setIsEditingProduct(null)} className="px-8 py-4 bg-white border-2 border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all">Cancelar</button>
+                <button onClick={saveProduct} className="px-10 py-4 bg-[#000033] text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-900/20 active:scale-95 transition-all">
+                  {isEditingProduct === 'new' ? 'Agregar al Catálogo' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

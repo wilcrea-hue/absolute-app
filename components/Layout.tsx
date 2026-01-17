@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   LayoutGrid, 
@@ -8,7 +9,8 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Map
+  Map,
+  Phone
 } from 'lucide-react';
 import { User } from '../types';
 import { Link, useLocation } from 'react-router-dom';
@@ -100,12 +102,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, cartCount, onLog
         </div>
 
         <div className="p-8 border-t border-slate-50 bg-slate-50/30">
-          <div className="flex items-center space-x-4 mb-6 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm">
-            <div className="w-12 h-12 rounded-2xl bg-[#000033] flex items-center justify-center text-brand-400 shadow-[0_5px_15px_-5px_rgba(0,0,51,0.5)]">
+          <div className="flex items-center space-x-4 mb-6 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="w-12 h-12 rounded-2xl bg-[#000033] flex-shrink-0 flex items-center justify-center text-brand-400 shadow-[0_5px_15px_-5px_rgba(0,0,51,0.5)]">
               <UserIcon size={24} strokeWidth={2.5} />
             </div>
-            <div className="overflow-hidden">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-black text-slate-900 truncate leading-tight">{user.name}</p>
+              {user.phone && (
+                <p className="text-[9px] font-bold text-slate-500 flex items-center mt-0.5">
+                  <Phone size={8} className="mr-1" /> {user.phone}
+                </p>
+              )}
               <p className="text-[10px] font-black text-brand-500 uppercase tracking-widest mt-1">{user.role}</p>
             </div>
           </div>
